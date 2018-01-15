@@ -5,8 +5,17 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+cache: cargo
+
+os:
+  - linux
+  - windows
+  - osx
 
 addons:
   apt:
     packages:
       - libx11-dev
+
+script:
+  - cargo test
