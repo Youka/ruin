@@ -13,6 +13,6 @@ fn main() {
             .output().expect("Couldn't run GCC to check X11 library existence!")
             .stderr
     ).to_string().contains("-lX11") {
-        panic!("X11 development library not found! Install libx11-dev to continue.");
+        panic!("X11 development library not found! Install libx11-dev and retry.");
     }
 }

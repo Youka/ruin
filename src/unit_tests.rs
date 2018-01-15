@@ -26,7 +26,8 @@ fn cstr_convert() {
 // Test gui
 #[test]
 fn messagebox() {
-    gui::dialog::messagebox("Hello world!", "Test");
+    use gui::dialog::messagebox;
+    messagebox("Hello world!", "Test");
 }
 
 

@@ -1,4 +1,4 @@
-// Windows implementation
+// Windows natives
 #[cfg(windows)]
 pub fn str_to_wide(s: &str) -> Vec<u16> {
     use std::ffi::OsStr;
@@ -19,7 +19,7 @@ pub fn wide_to_str(w: &[u16]) -> String {
     ).to_string_lossy().to_string() // Convert native string to Rust string with invalid characters replaced by hints
 }
 
-// General implementation
+// Generals
 pub fn str_to_cstr(s: &str) -> Vec<u8> {
     use std::ffi::CString;
     CString::new(   // Convert unicode codepoints to OS native string
