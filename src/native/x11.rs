@@ -30,6 +30,7 @@ extern {
         border_width: u32,
         border: u32, background: u32
     ) -> Window;
+    pub fn XDestroyWindow(display: Display, w: Window);
     pub fn XStoreName(display: Display, w: Window, window_name: *const u8);
     pub fn XRootWindow(display: Display, screen: i32) -> Window;
     pub fn XBlackPixel(display: Display, screen: i32) -> u32;

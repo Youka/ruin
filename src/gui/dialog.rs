@@ -43,7 +43,8 @@ pub fn messagebox(text: &str, caption: &str) {
                 break;
             }
         }
-        // Unload display and free child resources
+        // Destroy window and unload display
+        XDestroyWindow(display, window);
         XCloseDisplay(display);
     }
 }

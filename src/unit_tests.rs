@@ -1,7 +1,3 @@
-// Shortcut library namespace
-use super::*;
-
-
 // Test utils
 #[cfg(windows)]
 #[test]
@@ -27,7 +23,7 @@ fn cstr_convert() {
 #[test]
 fn messagebox() {
     use gui::dialog::messagebox;
-    messagebox("Hello world!", "Test");
+    messagebox("Hello wörld!", "Test");
 }
 
 
