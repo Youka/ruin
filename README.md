@@ -14,8 +14,8 @@ Documentation
 
 Planned
 -------
-- Replace X11 by GTK+
-- Add OS X (Cocoa|Carbon?) messagebox
+- Add button & icon parameters to messagebox
+- Add OS X (Cocoa) messagebox
 
 *TODO*
 

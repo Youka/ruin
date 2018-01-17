@@ -1,50 +1,38 @@
 // messagebox
 #[cfg(windows)]
 pub fn messagebox(text: &str, caption: &str) {
-    use ::utils::string::str_to_wide;
-    use ::native::winapi::MessageBoxW;
+    use utils::string::str_to_wide;
+    use native::winapi::*;
+    use std::ptr::null;
     let text_wide = str_to_wide(text);
     let caption_wide = str_to_wide(caption);
     unsafe {
-        MessageBoxW(0, text_wide.as_ptr(), caption_wide.as_ptr(), 0);
+        MessageBoxW(null(), text_wide.as_ptr(), caption_wide.as_ptr(), MB_ICONINFORMATION + MB_OK);
     }
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
+#[allow(unused)]
 pub fn messagebox(text: &str, caption: &str) {
+    use native::gtk::*;
     use std::ptr::null;
-    use ::utils::string::str_to_cstr;
-    use ::native::x11::*;
+    use utils::string::str_to_cstr;
     unsafe{
-        // Load display & default screen
-        let display = XOpenDisplay(null());
-        if display == null() {
-            panic!("Can't open a display!");
+        if !gtk_init_check(0, null()) {
+            panic!("Couldn't initialize GTK!");
         }
-        let screen = XDefaultScreen(display);
-        // Create window on screen
-        let window = XCreateSimpleWindow(display, XRootWindow(display, screen), 0, 0, 400, 400, 1, XBlackPixel(display, screen), XWhitePixel(display, screen));
-        if window == null() {
-            panic!("Can't create a window!");
-        }
-        let window_name = str_to_cstr(&[caption, text].join(" - "));
-        XStoreName(display, window, window_name.as_ptr());
-        // Select events to handle by window
-        XSelectInput(display, window, EXPOSURE_MASK | KEY_PRESS_MASK);
-        XMapWindow(display, window);
-        let wm_delete_window = str_to_cstr("WM_DELETE_WINDOW");
-        let atom = XInternAtom(display, wm_delete_window.as_ptr(), false);
-        XSetWMProtocols(display, window, &atom, 1);
-        // Process window events
-        let mut event = XEvent{typ: 0};
-        loop {
-            XNextEvent(display, &mut event);
-            if event.typ == KEY_PRESS || event.typ == CLIENT_MESSAGE {
-                break;
-            }
-        }
-        // Destroy window and unload display
-        XDestroyWindow(display, window);
-        XCloseDisplay(display);
+        let text_c = str_to_cstr(text);
+        let caption_c = str_to_cstr(caption);
+        let dialog = gtk_message_dialog_new(null(), GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, text_c.as_ptr());
+        gtk_window_set_title(dialog, caption_c.as_ptr());
+        gtk_window_set_keep_above(dialog, true);
+        gtk_dialog_run(dialog);
+        gtk_widget_destroy(dialog);
     }
+}
+
+#[cfg(target_os = "macos")]
+#[allow(unused)]
+pub fn messagebox(text: &str, caption: &str) {
+    unimplemented!();
 }
