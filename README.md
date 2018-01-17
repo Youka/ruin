@@ -1,8 +1,10 @@
 ruin
 ====
-**R**ust graphical **u**ser **i**nterface (**n**ative)
+The **R**ust graphical **u**ser **i**nterface (**n**ative) is a lightweight, fast, feature-rich, easy & cross-platform [GUI](https://en.wikipedia.org/wiki/Graphical_user_interface) library written in and for [Rust](www.rust-lang.org) which mostly abstracts platform components for native look&feel, a small memory footprint and stable backends.
 
-*TODO*
+Inspired by [wxWidgets](www.wxwidgets.org) and the lack of Rust libraries with few dependencies, ease-of-use and support for multiple platforms (at the current state of creation), ruin intends to become the first choice for projects with focus on tiny binaries, short response times and rapid development.
+
+*Work-in-progress*
 
 Usage
 --------
@@ -14,15 +16,15 @@ Documentation
 
 Planned
 -------
-- Add button & icon parameters to messagebox
+- Add button & icon parameters + optional button return to messagebox
 - Add OS X (Cocoa) messagebox
-
-*TODO*
+- Add basic windows
+- Add window events
 
 Changelog
 ---------
-*TODO*
+[See 'CHANGELOG' file](CHANGELOG.txt)
 
 LICENSE
 -------
-*TODO*
+[See 'LICENSE' file](LICENSE.txt)
