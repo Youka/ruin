@@ -21,4 +21,6 @@ crate-type = ["rlib"]
 panic = 'abort'
 
 [features]
-default = []
+default = ["utils", "gui"]
+utils = []
+gui = ["utils"]

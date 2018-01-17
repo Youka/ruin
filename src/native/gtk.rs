@@ -1,6 +1,4 @@
 // Types
-pub enum _GdkScreen{}
-pub type GdkScreen = *const _GdkScreen;
 pub enum _GtkWidget{}
 pub type GtkWidget = *const _GtkWidget;
 

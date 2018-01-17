@@ -12,7 +12,6 @@ pub fn messagebox(text: &str, caption: &str) {
 }
 
 #[cfg(target_os = "linux")]
-#[allow(unused)]
 pub fn messagebox(text: &str, caption: &str) {
     use native::gtk::*;
     use std::ptr::null;
