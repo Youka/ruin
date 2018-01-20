@@ -9,7 +9,7 @@ license = "MIT"
 
 publish = false
 keywords = ["ruin", "gui", "native"]
-categories = ["gui"]
+categories = ["gui", "rendering"]
 
 build = "build.rs"
 

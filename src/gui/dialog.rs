@@ -16,12 +16,12 @@ pub fn messagebox(text: &str, caption: &str) {
     use native::gtk::*;
     use std::ptr::null;
     use utils::string::str_to_cstr;
+    let text_c = str_to_cstr(text);
+    let caption_c = str_to_cstr(caption);
     unsafe{
         if !gtk_init_check(0, null()) {
             panic!("Couldn't initialize GTK!");
         }
-        let text_c = str_to_cstr(text);
-        let caption_c = str_to_cstr(caption);
         let dialog = gtk_message_dialog_new(null(), GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, text_c.as_ptr());
         gtk_window_set_title(dialog, caption_c.as_ptr());
         gtk_window_set_keep_above(dialog, true);

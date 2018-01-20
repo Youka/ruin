@@ -33,3 +33,28 @@ pub fn cstr_to_str(bytes: &[u8]) -> String {
         bytes.split(|&c| c==0u8).next().unwrap()   // Limit string contents until termination character (excluded)
     ).unwrap().to_string_lossy().to_string()    // Convert native string to Rust string with invalid characters replaced by hints
 }
+
+
+// Tests
+#[cfg(test)]
+mod tests {
+    #[cfg(windows)]
+    #[test]
+    fn wide_convert() {
+        use utils::string::{str_to_wide,wide_to_str};
+        const TEXT: &str = "This is an unicode string test!!!";
+        assert_eq!(
+            wide_to_str(&str_to_wide(TEXT)[..]),
+            String::from(TEXT)
+        );
+    }
+
+    #[test]
+    fn cstr_convert() {
+        use utils::string::{str_to_cstr,cstr_to_str};
+        assert_eq!(
+            cstr_to_str(&str_to_cstr("This is a cstring\0test!!!")[..]),
+            String::from("This is a cstring")
+        );
+    }
+}

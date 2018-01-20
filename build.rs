@@ -6,13 +6,13 @@ fn main() {
 // Detect GTK+ 3 (dev) library on linux
 #[cfg(target_os = "linux")]
 fn main() {
-    check_library("GTK+ 3", "gtk-3");
+    check_gcc_library("GTK+ 3", "gtk-3");
 }
 
 
 // Detect system library with GCC
-#[cfg(target_os = "linux")]
-fn check_library(lib_name: &str, lib_cmd: &str) {
+#[allow(dead_code)]
+fn check_gcc_library(lib_name: &str, lib_cmd: &str) {
     use std::process::Command;
     let link_arg = &(String::from("-l") + lib_cmd);
     if String::from_utf8_lossy(

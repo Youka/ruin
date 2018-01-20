@@ -16,6 +16,7 @@ Documentation
 
 Planned
 -------
+- Add tiny i18n library
 - Add button & icon parameters + optional button return to messagebox
 - Add OS X (Cocoa) messagebox
 - Add basic windows
