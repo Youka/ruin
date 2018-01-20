@@ -41,7 +41,7 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn wide_convert() {
-        use utils::string::{str_to_wide,wide_to_str};
+        use super::{str_to_wide,wide_to_str};
         const TEXT: &str = "This is an unicode string test!!!";
         assert_eq!(
             wide_to_str(&str_to_wide(TEXT)[..]),
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn cstr_convert() {
-        use utils::string::{str_to_cstr,cstr_to_str};
+        use super::{str_to_cstr,cstr_to_str};
         assert_eq!(
             cstr_to_str(&str_to_cstr("This is a cstring\0test!!!")[..]),
             String::from("This is a cstring")
