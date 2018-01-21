@@ -20,7 +20,8 @@ impl Display for Error{
 
 // Catalog I/O
 use std::io::Read;
-pub fn load_catalog_from_reader(reader: &mut Read) -> IoResult<Catalog> {
+use std::io::Result as IoResult;
+pub fn load_catalog(reader: &mut Read) -> IoResult<Catalog> {
     let mut catalog = Catalog::new();
     use std::io::{BufReader,BufRead};
     for line_result in BufReader::new(reader).lines() {
@@ -34,15 +35,18 @@ pub fn load_catalog_from_reader(reader: &mut Read) -> IoResult<Catalog> {
     }
     Ok(catalog)
 }
+pub fn load_catalog_data(data: &[u8]) -> IoResult<Catalog> {
+    use std::io::Cursor;
+    load_catalog(&mut Cursor::new(data))
+}
 use std::path::Path;
-use std::io::Result as IoResult;
-pub fn load_catalog_from_file<P: AsRef<Path>>(path: P) -> IoResult<Catalog> {
+pub fn load_catalog_file<P: AsRef<Path>>(path: P) -> IoResult<Catalog> {
     use std::fs::File;
-    load_catalog_from_reader(&mut File::open(path)?)
+    load_catalog(&mut File::open(path)?)
 }
 
 use std::io::Write;
-pub fn save_catalog_to_writer<'a>(catalog: &'a Catalog, writer: &mut Write) -> IoResult<&'a Catalog> {
+pub fn save_catalog<'a>(catalog: &'a Catalog, writer: &mut Write) -> IoResult<&'a Catalog> {
     use std::io::BufWriter;
     let mut writer = BufWriter::new(writer);
     for (id, message) in catalog {
@@ -55,29 +59,33 @@ pub fn save_catalog_to_writer<'a>(catalog: &'a Catalog, writer: &mut Write) -> I
     }
     Ok(catalog)
 }
-pub fn save_catalog_to_file<P: AsRef<Path>>(catalog: &Catalog, path: P) -> IoResult<&Catalog> {
+pub fn save_catalog_data<'a>(catalog: &'a Catalog, data: &mut Vec<u8>) -> IoResult<&'a Catalog> {
+    use std::io::BufWriter;
+    save_catalog(&catalog, &mut BufWriter::new(data))
+}
+pub fn save_catalog_file<P: AsRef<Path>>(catalog: &Catalog, path: P) -> IoResult<&Catalog> {
     use std::fs::OpenOptions;
-    save_catalog_to_writer(catalog, &mut OpenOptions::new().write(true).truncate(true).create(true).open(path)?)
+    save_catalog(catalog, &mut OpenOptions::new().write(true).truncate(true).create(true).open(path)?)
 }
 
 // Register I/O
-pub fn load_register_from_directory<P: AsRef<Path>>(path: P) -> IoResult<Register> {
+pub fn load_register<P: AsRef<Path>>(path: P) -> IoResult<Register> {
     let mut register = Register::new();
     use std::fs::read_dir;
     for dir_entry_result in read_dir(path)? {
         let dir_entry = try!(dir_entry_result);
         register.insert(
             dir_entry.file_name().to_string_lossy().to_string(),
-            load_catalog_from_file(dir_entry.path().to_string_lossy().to_string())?
+            load_catalog_file(dir_entry.path().to_string_lossy().to_string())?
         );
     }
     Ok(register)
 }
-pub fn save_register_to_directory<P: AsRef<Path>>(register: &Register, path: P) -> IoResult<&Register> {
+pub fn save_register<P: AsRef<Path>>(register: &Register, path: P) -> IoResult<&Register> {
     use std::fs::create_dir;
     create_dir(&path).is_ok();
     for (catalog_name, catalog) in register {
-        save_catalog_to_file(catalog, path.as_ref().clone().join(catalog_name))?;
+        save_catalog_file(catalog, path.as_ref().clone().join(catalog_name))?;
     }
     Ok(register)
 }
@@ -120,7 +128,7 @@ pub fn available_catalogs() -> Result<Vec<String>,Error> {
 }
 
 pub fn format_message(message: &str, tokens: &[&str]) -> String {
-    let mut message = message.replace("\\n", "\n");
+    let mut message = message.replace("\\n", "\n").replace("\\{}", "\0");
     for token in tokens {
         if let Some(placeholder) = message.find("{}") {
             message = String::from(&message[..placeholder]) + token + &message[placeholder+2..];
@@ -128,7 +136,7 @@ pub fn format_message(message: &str, tokens: &[&str]) -> String {
             break;
         }
     }
-    return message;
+    message.replace("\0", "{}")
 }
 pub fn translate(id: &str, tokens: &[&str]) -> Result<Option<String>,Error> {
     ACTIVE_REGISTER_STATE.with(|state|{
@@ -156,7 +164,11 @@ macro_rules! tl {
             $(
                 tokens.push($token);
             )*
-            $crate::utils::i18n::translate($origin , &tokens).unwrap_or(Some(String::from($origin))).unwrap_or(String::from($origin))
+            if let Ok(Some(msg)) = $crate::utils::i18n::translate($origin , &tokens) {
+                msg
+            }else{
+                String::from($origin)
+            }
         }
     );
 }
@@ -167,27 +179,21 @@ macro_rules! tl {
 mod tests {
     #[test]
     fn write_read_catalog() {
-        use super::{Catalog,save_catalog_to_writer,load_catalog_from_reader};
+        use super::{Catalog,save_catalog_data,load_catalog_data};
         // Template
         let mut catalog = Catalog::new();
         catalog.insert(String::from("test"), String::from("Foo"));
         catalog.insert(String::from("test2"), String::from("Bar"));
         // Write
         let mut buffer: Vec<u8> = Vec::new();
-        {
-            use std::io::BufWriter;
-            let mut writer = BufWriter::new(&mut buffer);
-            save_catalog_to_writer(&catalog, &mut writer).expect("Saving catalog to writer failed!");
-        }
+        save_catalog_data(&catalog, &mut buffer).expect("Saving catalog to writer failed!");
         assert_eq!(
             String::from_utf8_lossy(&buffer).to_string(),
             String::from("test=Foo\ntest2=Bar\n")
         );
         // Read
-        use std::io::Cursor;
-        let mut reader = Cursor::new(&buffer);
         assert_eq!(
-            load_catalog_from_reader(&mut reader).expect("Loading catalog from reader failed!"),
+            load_catalog_data(&buffer).expect("Loading catalog from reader failed!"),
             catalog
         );
     }
@@ -203,7 +209,7 @@ mod tests {
                     Catalog::from_iter(once(
                         (
                             String::from("id"),
-                            String::from("{}\\n{}")
+                            String::from("{}\\n\\{}")
                         )
                     ))
                 )
