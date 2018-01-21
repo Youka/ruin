@@ -99,12 +99,12 @@ struct RegisterState {
 thread_local!(
     static ACTIVE_REGISTER_STATE: RefCell<Option<RegisterState>> = RefCell::new(Option::None);
 );
-pub fn set_active_register(register: Register) {
+pub fn activate_register(register: Register) {
     ACTIVE_REGISTER_STATE.with(|state|{
         *state.borrow_mut() = Some(RegisterState{register, catalog: None});
     });
 }
-pub fn set_active_catalog(catalog_name: &str) -> Result<&str,Error> {
+pub fn choose_catalog(catalog_name: &str) -> Result<&str,Error> {
     ACTIVE_REGISTER_STATE.with(|state|{
         if let Some(ref mut state) = *state.borrow_mut() {
             if let Some(catalog) = state.register.get_mut(&String::from(catalog_name)) {
@@ -200,9 +200,9 @@ mod tests {
 
     #[test]
     fn check_translate() {
-        use super::{Register,Catalog,set_active_register,available_catalogs,set_active_catalog};
+        use super::{Register,Catalog,activate_register,available_catalogs,choose_catalog};
         use std::iter::{once,FromIterator};
-        set_active_register(
+        activate_register(
             Register::from_iter(once(
                 (
                     String::from("de-de"),
@@ -216,9 +216,9 @@ mod tests {
             ))
         );
         assert!(available_catalogs().expect("Register wasn't set previously?!").contains(&String::from("de-de")), "But... but the catalog must be there!");
-        set_active_catalog("de-de").is_ok();
+        choose_catalog("de-de").is_ok();
         assert_eq!(tl!("id"), String::from("{}\n{}"));
-        set_active_catalog("en-en").is_ok();
+        choose_catalog("en-en").is_ok();
         assert_eq!(tl!("Blub"), String::from("Blub"));
     }
 }
