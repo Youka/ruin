@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 pub type Catalog = BTreeMap<String,String>;
 pub type Register = BTreeMap<String,Catalog>;
 
+#[derive(Debug)]
 pub enum Error{
     NoRegister,
     NoCatalog
@@ -194,12 +195,21 @@ mod tests {
     #[test]
     fn check_translate() {
         use super::{Register,Catalog,set_active_register,set_active_catalog};
-        let mut catalog = Catalog::new();
-        catalog.insert(String::from("test"), String::from("{}, {}!\\n"));
-        let mut register = Register::new();
-        register.insert(String::from("en-us"), catalog);
-        set_active_register(register);
-        set_active_catalog("en-us").is_ok();
+        use std::iter::{once,FromIterator};
+        set_active_register(
+            Register::from_iter(once(
+                (
+                    String::from("en-us"),
+                    Catalog::from_iter(once(
+                        (
+                            String::from("test"),
+                            String::from("{}, {}!\\n")
+                        )
+                    ))
+                )
+            ))
+        );
+        set_active_catalog("en-us").expect("Catalog 'en-us' not found?!");
         assert_eq!(tl!("test", "Hello", "world"), "Hello, world!\n");
     }
 }
