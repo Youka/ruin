@@ -1,4 +1,5 @@
 // Windows natives
+/// Converts rust (utf-8) string to null-terminated utf-16 string. (Just available on Windows)
 #[cfg(windows)]
 pub fn str_to_wide(s: &str) -> Vec<u16> {
     use std::ffi::OsStr;
@@ -9,7 +10,7 @@ pub fn str_to_wide(s: &str) -> Vec<u16> {
         .chain(once(0u16)) // Push termination character to the end of iterator
         .collect() // Convert iterator into vector (by return)
 }
-
+/// Converts null-terminated utf-16 string to rust (utf-8) string. (Just available on Windows)
 #[cfg(windows)]
 pub fn wide_to_str(w: &[u16]) -> String {
     use std::ffi::OsString;
@@ -20,13 +21,14 @@ pub fn wide_to_str(w: &[u16]) -> String {
 }
 
 // Generals
+/// Converts rust (utf-8) string to null-terminated utf-8 string.
 pub fn str_to_cstr(s: &str) -> Vec<u8> {
     use std::ffi::CString;
     CString::new(   // Convert unicode codepoints to OS native string
         s.split('\0').next().unwrap()   // Limit string contents until termination character (excluded)
     ).unwrap().into_bytes_with_nul()    // Convert native string into vector
 }
-
+/// Converts null-terminated utf-8 string to rust (utf-8) string.
 pub fn cstr_to_str(bytes: &[u8]) -> String {
     use std::ffi::CString;
     CString::new(   // Convert unicode codepoints to OS native string

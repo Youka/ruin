@@ -16,8 +16,6 @@ Documentation
 
 Planned
 -------
-- Add simple benchmark
-- Add first docs
 - Add button & icon parameters + optional button return to messagebox
 - Add logo
 - Add OS X (Cocoa) messagebox

@@ -1,4 +1,4 @@
-// messagebox
+/// Shows modal message dialog with custom window caption and message text.
 #[cfg(windows)]
 pub fn messagebox(text: &str, caption: &str) {
     use utils::string::str_to_wide;
@@ -10,7 +10,7 @@ pub fn messagebox(text: &str, caption: &str) {
         MessageBoxW(null(), text_wide.as_ptr(), caption_wide.as_ptr(), MB_ICONINFORMATION + MB_OK);
     }
 }
-
+/// Shows modal message dialog with custom window caption and message text.
 #[cfg(target_os = "linux")]
 pub fn messagebox(text: &str, caption: &str) {
     use native::gtk::*;
@@ -29,7 +29,7 @@ pub fn messagebox(text: &str, caption: &str) {
         gtk_widget_destroy(dialog);
     }
 }
-
+/// Shows modal message dialog with custom window caption and message text.
 #[cfg(target_os = "macos")]
 #[allow(unused)]
 pub fn messagebox(text: &str, caption: &str) {

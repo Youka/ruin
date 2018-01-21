@@ -1,8 +1,11 @@
 // Types
 use std::collections::BTreeMap;
+/// Catalog of **id=message** entries.
 pub type Catalog = BTreeMap<String,String>;
+/// Register of catalogs with identifiers.
 pub type Register = BTreeMap<String,Catalog>;
 
+/// Register & catalog read errors.
 #[derive(Debug)]
 pub enum Error{
     NoRegister,
@@ -21,6 +24,7 @@ impl Display for Error{
 // Catalog I/O
 use std::io::Read;
 use std::io::Result as IoResult;
+/// Read catalog from reader.
 pub fn load_catalog(reader: &mut Read) -> IoResult<Catalog> {
     let mut catalog = Catalog::new();
     use std::io::{BufReader,BufRead};
@@ -35,17 +39,20 @@ pub fn load_catalog(reader: &mut Read) -> IoResult<Catalog> {
     }
     Ok(catalog)
 }
+/// Read catalog from byte array.
 pub fn load_catalog_data(data: &[u8]) -> IoResult<Catalog> {
     use std::io::Cursor;
     load_catalog(&mut Cursor::new(data))
 }
 use std::path::Path;
+/// Read catalog from file.
 pub fn load_catalog_file<P: AsRef<Path>>(path: P) -> IoResult<Catalog> {
     use std::fs::File;
     load_catalog(&mut File::open(path)?)
 }
 
 use std::io::Write;
+/// Write catalog to writer.
 pub fn save_catalog<'a>(catalog: &'a Catalog, writer: &mut Write) -> IoResult<&'a Catalog> {
     use std::io::BufWriter;
     let mut writer = BufWriter::new(writer);
@@ -59,16 +66,19 @@ pub fn save_catalog<'a>(catalog: &'a Catalog, writer: &mut Write) -> IoResult<&'
     }
     Ok(catalog)
 }
+/// Write catalog to byte vector.
 pub fn save_catalog_data<'a>(catalog: &'a Catalog, data: &mut Vec<u8>) -> IoResult<&'a Catalog> {
     use std::io::BufWriter;
     save_catalog(&catalog, &mut BufWriter::new(data))
 }
+/// Write catalog to file. Truncates or creates target file.
 pub fn save_catalog_file<P: AsRef<Path>>(catalog: &Catalog, path: P) -> IoResult<&Catalog> {
     use std::fs::OpenOptions;
     save_catalog(catalog, &mut OpenOptions::new().write(true).truncate(true).create(true).open(path)?)
 }
 
 // Register I/O
+/// Read register with catalogs from directory.
 pub fn load_register<P: AsRef<Path>>(path: P) -> IoResult<Register> {
     let mut register = Register::new();
     use std::fs::read_dir;
@@ -81,6 +91,7 @@ pub fn load_register<P: AsRef<Path>>(path: P) -> IoResult<Register> {
     }
     Ok(register)
 }
+/// Write register with catalogs to directory. Creates directory if missing.
 pub fn save_register<P: AsRef<Path>>(register: &Register, path: P) -> IoResult<&Register> {
     use std::fs::create_dir;
     create_dir(&path).is_ok();
@@ -99,11 +110,13 @@ struct RegisterState {
 thread_local!(
     static ACTIVE_REGISTER_STATE: RefCell<Option<RegisterState>> = RefCell::new(Option::None);
 );
+/// Set register thread-local.
 pub fn activate_register(register: Register) {
     ACTIVE_REGISTER_STATE.with(|state|{
         *state.borrow_mut() = Some(RegisterState{register, catalog: None});
     });
 }
+/// Set active catalog of thread-local register.
 pub fn choose_catalog(catalog_name: &str) -> Result<&str,Error> {
     ACTIVE_REGISTER_STATE.with(|state|{
         if let Some(ref mut state) = *state.borrow_mut() {
@@ -118,6 +131,7 @@ pub fn choose_catalog(catalog_name: &str) -> Result<&str,Error> {
 }
 
 // Thread localization
+/// List available catalogs from thread-local register.
 pub fn available_catalogs() -> Result<Vec<String>,Error> {
     ACTIVE_REGISTER_STATE.with(|state|{
         if let Some(ref state) = *state.borrow() {
@@ -126,7 +140,7 @@ pub fn available_catalogs() -> Result<Vec<String>,Error> {
         Err(Error::NoRegister)
     })
 }
-
+/// Format message. Unescapes newlines and inserts tokens into **{}** placeholders.
 pub fn format_message(message: &str, tokens: &[&str]) -> String {
     let mut message = message.replace("\\n", "\n").replace("\\{}", "\0");
     for token in tokens {
@@ -138,6 +152,7 @@ pub fn format_message(message: &str, tokens: &[&str]) -> String {
     }
     message.replace("\0", "{}")
 }
+/// Translates **id** to **message** from active catalog and formats with tokens.
 pub fn translate(id: &str, tokens: &[&str]) -> Result<Option<String>,Error> {
     ACTIVE_REGISTER_STATE.with(|state|{
         if let Some(ref state) = *state.borrow() {
@@ -152,6 +167,7 @@ pub fn translate(id: &str, tokens: &[&str]) -> Result<Option<String>,Error> {
         Err(Error::NoRegister)
     })
 }
+/// Shortcut for [translate](utils/i18n/fn.translate.html) with variable arguments.
 #[macro_export]
 macro_rules! tl {
     ($origin:expr) => (
