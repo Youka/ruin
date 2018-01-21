@@ -2,6 +2,7 @@
 pub enum _HWND{}
 pub type HWND = *const _HWND;
 
+pub const MB_ICONNONE: u32 = 0x00;
 pub const MB_ICONERROR: u32 = 0x10;
 pub const MB_ICONQUESTION: u32 = 0x20;
 pub const MB_ICONWARNING: u32 = 0x30;

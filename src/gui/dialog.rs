@@ -1,6 +1,7 @@
 /// Icons to display on message dialog.
 #[derive(PartialEq, Eq, Debug)]
 pub enum Icon{
+    None,
     Info,
     Question,
     Warning,
@@ -38,6 +39,7 @@ pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Op
         match MessageBoxW(
             null(), text_wide.as_ptr(), caption_wide.as_ptr(),
             match icon {
+                Icon::None => MB_ICONNONE,
                 Icon::Info => MB_ICONINFORMATION,
                 Icon::Question => MB_ICONQUESTION,
                 Icon::Warning => MB_ICONWARNING,
@@ -78,6 +80,7 @@ pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Op
         let dialog = gtk_message_dialog_new(
             null(), GTK_DIALOG_MODAL,
             match icon {
+                Icon::None => GTK_MESSAGE_OTHER,
                 Icon::Info => GTK_MESSAGE_INFO,
                 Icon::Question => GTK_MESSAGE_QUESTION,
                 Icon::Warning => GTK_MESSAGE_WARNING,
@@ -119,5 +122,8 @@ pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Op
 #[cfg(target_os = "macos")]
 #[allow(unused)]
 pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Option<Button> {
+
+    // TODO
     unimplemented!();
+    
 }
