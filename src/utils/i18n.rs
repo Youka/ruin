@@ -19,27 +19,25 @@ impl Display for Error{
 
 // Catalog I/O
 use std::io::Read;
-pub fn load_catalog_from_reader(reader: &mut Read) -> Catalog {
+pub fn load_catalog_from_reader(reader: &mut Read) -> IoResult<Catalog> {
     let mut catalog = Catalog::new();
     use std::io::{BufReader,BufRead};
     for line_result in BufReader::new(reader).lines() {
-        if let Ok(mut line) = line_result {
-            if let Some(sep) = line.find('#') {
-                line.truncate(sep);
-            }
-            if let Some(sep) = line.find('=') {
-                let (id, message) = line.split_at(sep);
-                catalog.insert(String::from(id), String::from(message));
-            }
+        let mut line = try!(line_result);
+        if let Some(sep) = line.find('#') {
+            line.truncate(sep);
+        }
+        if let Some(sep) = line.find('=') {
+            catalog.insert(String::from(&line[..sep]), String::from(&line[sep+1..]));
         }
     }
-    catalog
+    Ok(catalog)
 }
 use std::path::Path;
 use std::io::Result as IoResult;
 pub fn load_catalog_from_file<P: AsRef<Path>>(path: P) -> IoResult<Catalog> {
     use std::fs::File;
-    Ok(load_catalog_from_reader(&mut File::open(path)?))
+    load_catalog_from_reader(&mut File::open(path)?)
 }
 
 use std::io::Write;
@@ -47,7 +45,8 @@ pub fn save_catalog_to_writer<'a>(catalog: &'a Catalog, writer: &mut Write) -> I
     use std::io::BufWriter;
     let mut writer = BufWriter::new(writer);
     for (id, message) in catalog {
-        let mut entry = id.clone();
+        let mut entry = String::with_capacity(id.len() + message.len() + 2);
+        entry.push_str(id);
         entry.push('=');
         entry.push_str(message);
         entry.push('\n');
@@ -109,35 +108,55 @@ pub fn set_active_catalog(catalog_name: &str) -> Result<&str,Error> {
         Err(Error::NoRegister)
     })
 }
+
+// Thread localization
 pub fn available_catalogs() -> Result<Vec<String>,Error> {
     ACTIVE_REGISTER_STATE.with(|state|{
         if let Some(ref state) = *state.borrow() {
             return Ok(state.register.keys().cloned().collect());
         }
-        Err(Error::NoCatalog)
+        Err(Error::NoRegister)
     })
 }
 
-// Thread-local localization
-#[allow(dead_code)]
-fn format_message() {
-
-    // TODO
-    unimplemented!();
-
+pub fn format_message(message: &str, tokens: &[&str]) -> String {
+    let mut message = message.replace("\\n", "\n");
+    for token in tokens {
+        if let Some(placeholder) = message.find("{}") {
+            message = String::from(&message[..placeholder]) + token + &message[placeholder+2..];
+        }else{
+            break;
+        }
+    }
+    return message;
 }
-
+pub fn translate(id: &str, tokens: &[&str]) -> Result<Option<String>,Error> {
+    ACTIVE_REGISTER_STATE.with(|state|{
+        if let Some(ref state) = *state.borrow() {
+            if let Some(ref catalog) = state.catalog {
+                if let Some(message) = catalog.get(id) {
+                    return Ok(Some(format_message(message, tokens)));
+                }
+                return Ok(None);
+            }
+            return Err(Error::NoCatalog);
+        }
+        Err(Error::NoRegister)
+    })
+}
 #[macro_export]
 macro_rules! tl {
     ($origin:expr) => (
-
-        // TODO
-
+        super::translate($origin , &[]).unwrap_or(Some(String::new())).unwrap_or(String::new())
     );
-    ($origin:expr, $inserts:expr) => (
-
-        // TODO
-
+    ($origin:expr,$( $token:expr ),*) => (
+        {
+            let mut tokens = Vec::new();
+            $(
+                tokens.push($token);
+            )*
+            super::translate($origin , &tokens).unwrap_or(Some(String::new())).unwrap_or(String::new())
+        }
     );
 }
 
@@ -146,20 +165,41 @@ macro_rules! tl {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn write_catalog() {
-        use super::{Catalog,save_catalog_to_writer};
+    fn write_read_catalog() {
+        use super::{Catalog,save_catalog_to_writer,load_catalog_from_reader};
+        // Template
         let mut catalog = Catalog::new();
         catalog.insert(String::from("test"), String::from("Foo"));
         catalog.insert(String::from("test2"), String::from("Bar"));
-        let mut writer_target: Vec<u8> = Vec::new();
+        // Write
+        let mut buffer: Vec<u8> = Vec::new();
         {
             use std::io::BufWriter;
-            let mut writer = BufWriter::new(&mut writer_target);
+            let mut writer = BufWriter::new(&mut buffer);
             save_catalog_to_writer(&catalog, &mut writer).expect("Saving catalog to writer failed!");
         }
         assert_eq!(
-            String::from_utf8_lossy(&writer_target).to_string(),
+            String::from_utf8_lossy(&buffer).to_string(),
             String::from("test=Foo\ntest2=Bar\n")
         );
+        // Read
+        use std::io::Cursor;
+        let mut reader = Cursor::new(&buffer);
+        assert_eq!(
+            load_catalog_from_reader(&mut reader).expect("Loading catalog from reader failed!"),
+            catalog
+        );
+    }
+
+    #[test]
+    fn check_translate() {
+        use super::{Register,Catalog,set_active_register,set_active_catalog};
+        let mut catalog = Catalog::new();
+        catalog.insert(String::from("test"), String::from("{}, {}!\\n"));
+        let mut register = Register::new();
+        register.insert(String::from("en-us"), catalog);
+        set_active_register(register);
+        set_active_catalog("en-us").is_ok();
+        assert_eq!(tl!("test", "Hello", "world"), "Hello, world!\n");
     }
 }
