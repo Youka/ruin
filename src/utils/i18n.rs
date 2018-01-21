@@ -65,12 +65,11 @@ pub fn load_register_from_directory<P: AsRef<Path>>(path: P) -> IoResult<Registe
     let mut register = Register::new();
     use std::fs::read_dir;
     for dir_entry_result in read_dir(path)? {
-        if let Ok(dir_entry) = dir_entry_result {
-            register.insert(
-                dir_entry.file_name().to_string_lossy().to_string(),
-                load_catalog_from_file(dir_entry.path().to_string_lossy().to_string())?
-            );
-        }
+        let dir_entry = try!(dir_entry_result);
+        register.insert(
+            dir_entry.file_name().to_string_lossy().to_string(),
+            load_catalog_from_file(dir_entry.path().to_string_lossy().to_string())?
+        );
     }
     Ok(register)
 }
@@ -148,15 +147,16 @@ pub fn translate(id: &str, tokens: &[&str]) -> Result<Option<String>,Error> {
 #[macro_export]
 macro_rules! tl {
     ($origin:expr) => (
-        $crate::utils::i18n::translate($origin , &[]).unwrap_or(Some(String::new())).unwrap_or(String::new())
+        tl!($origin,)
     );
     ($origin:expr,$( $token:expr ),*) => (
         {
+            #[allow(unused_mut)]
             let mut tokens = Vec::new();
             $(
                 tokens.push($token);
             )*
-            $crate::utils::i18n::translate($origin , &tokens).unwrap_or(Some(String::new())).unwrap_or(String::new())
+            $crate::utils::i18n::translate($origin , &tokens).unwrap_or(Some(String::from($origin))).unwrap_or(String::from($origin))
         }
     );
 }
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn check_translate() {
-        use super::{Register,Catalog,set_active_register,available_catalogs};
+        use super::{Register,Catalog,set_active_register,available_catalogs,set_active_catalog};
         use std::iter::{once,FromIterator};
         set_active_register(
             Register::from_iter(once(
@@ -210,5 +210,9 @@ mod tests {
             ))
         );
         assert!(available_catalogs().expect("Register wasn't set previously?!").contains(&String::from("de-de")), "But... but the catalog must be there!");
+        set_active_catalog("de-de").is_ok();
+        assert_eq!(tl!("id"), String::from("{}\n{}"));
+        set_active_catalog("en-en").is_ok();
+        assert_eq!(tl!("Blub"), String::from("Blub"));
     }
 }
