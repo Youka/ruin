@@ -6,7 +6,7 @@ pub type Catalog = BTreeMap<String,String>;
 pub type Register = BTreeMap<String,Catalog>;
 
 /// Register & catalog read errors.
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Error{
     NoRegister,
     NoCatalog

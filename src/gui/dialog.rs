@@ -1,21 +1,21 @@
 /// Icons to display on message dialog.
+#[derive(PartialEq, Eq, Debug)]
 pub enum Icon{
     Info,
     Question,
     Warning,
     Error
 }
-
 /// Buttons on message dialog.
+#[derive(PartialEq, Eq, Debug)]
 pub enum Buttons{
     Ok,
     OkCancel,
     YesNo,
     AbortRetryIgnore
 }
-
 /// Triggered button on message dialog.
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Button{
     Ok,
     Cancel,
@@ -62,26 +62,62 @@ pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Op
 }
 /// Shows modal message dialog with custom window caption and message text.
 #[cfg(target_os = "linux")]
-pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) {
+pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Option<Button> {
     use native::gtk::*;
     use std::ptr::null;
     use utils::string::str_to_cstr;
     let text_c = str_to_cstr(text);
     let caption_c = str_to_cstr(caption);
+    let abort_button_label = str_to_cstr(&tl!("Abort"));
+    let retry_button_label = str_to_cstr(&tl!("Retry"));
+    let ignore_button_label = str_to_cstr(&tl!("Ignore"));
     unsafe{
         if !gtk_init_check(0, null()) {
             panic!("Couldn't initialize GTK!");
         }
-        let dialog = gtk_message_dialog_new(null(), GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, text_c.as_ptr());
+        let dialog = gtk_message_dialog_new(
+            null(), GTK_DIALOG_MODAL,
+            match icon {
+                Icon::Info => GTK_MESSAGE_INFO,
+                Icon::Question => GTK_MESSAGE_QUESTION,
+                Icon::Warning => GTK_MESSAGE_WARNING,
+                Icon::Error => GTK_MESSAGE_ERROR
+            },
+            match buttons {
+                Buttons::Ok => GTK_BUTTONS_OK,
+                Buttons::OkCancel => GTK_BUTTONS_OK_CANCEL,
+                Buttons::YesNo => GTK_BUTTONS_YES_NO,
+                Buttons::AbortRetryIgnore => GTK_BUTTONS_NONE
+            },
+            text_c.as_ptr()
+        );
+        const RESPONSE_ABORT: i32 = -100;
+        const RESPONSE_RETRY: i32 = -101;
+        const RESPONSE_IGNORE: i32 = -102;
+        if buttons == Buttons::AbortRetryIgnore {
+            gtk_dialog_add_button(dialog, abort_button_label.as_ptr(), RESPONSE_ABORT);
+            gtk_dialog_add_button(dialog, retry_button_label.as_ptr(), RESPONSE_RETRY);
+            gtk_dialog_add_button(dialog, ignore_button_label.as_ptr(), RESPONSE_IGNORE);
+        }
         gtk_window_set_title(dialog, caption_c.as_ptr());
         gtk_window_set_keep_above(dialog, true);
-        gtk_dialog_run(dialog);
+        let response = gtk_dialog_run(dialog);
         gtk_widget_destroy(dialog);
+        match response {
+            GTK_RESPONSE_OK => Some(Button::Ok),
+            GTK_RESPONSE_CANCEL => Some(Button::Cancel),
+            GTK_RESPONSE_YES => Some(Button::Yes),
+            GTK_RESPONSE_NO => Some(Button::No),
+            RESPONSE_ABORT => Some(Button::Abort),
+            RESPONSE_RETRY => Some(Button::Retry),
+            RESPONSE_IGNORE => Some(Button::Ignore),
+            _ => None
+        }
     }
 }
 /// Shows modal message dialog with custom window caption and message text.
 #[cfg(target_os = "macos")]
 #[allow(unused)]
-pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) {
+pub fn messagebox(text: &str, caption: &str, icon: Icon, buttons: Buttons) -> Option<Button> {
     unimplemented!();
 }
