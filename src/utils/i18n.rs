@@ -148,7 +148,7 @@ pub fn translate(id: &str, tokens: &[&str]) -> Result<Option<String>,Error> {
 #[macro_export]
 macro_rules! tl {
     ($origin:expr) => (
-        super::translate($origin , &[]).unwrap_or(Some(String::new())).unwrap_or(String::new())
+        $crate::utils::i18n::translate($origin , &[]).unwrap_or(Some(String::new())).unwrap_or(String::new())
     );
     ($origin:expr,$( $token:expr ),*) => (
         {
@@ -156,7 +156,7 @@ macro_rules! tl {
             $(
                 tokens.push($token);
             )*
-            super::translate($origin , &tokens).unwrap_or(Some(String::new())).unwrap_or(String::new())
+            $crate::utils::i18n::translate($origin , &tokens).unwrap_or(Some(String::new())).unwrap_or(String::new())
         }
     );
 }
@@ -194,22 +194,21 @@ mod tests {
 
     #[test]
     fn check_translate() {
-        use super::{Register,Catalog,set_active_register,set_active_catalog};
+        use super::{Register,Catalog,set_active_register,available_catalogs};
         use std::iter::{once,FromIterator};
         set_active_register(
             Register::from_iter(once(
                 (
-                    String::from("en-us"),
+                    String::from("de-de"),
                     Catalog::from_iter(once(
                         (
-                            String::from("test"),
-                            String::from("{}, {}!\\n")
+                            String::from("id"),
+                            String::from("{}\\n{}")
                         )
                     ))
                 )
             ))
         );
-        set_active_catalog("en-us").expect("Catalog 'en-us' not found?!");
-        assert_eq!(tl!("test", "Hello", "world"), "Hello, world!\n");
+        assert!(available_catalogs().expect("Register wasn't set previously?!").contains(&String::from("de-de")), "But... but the catalog must be there!");
     }
 }
